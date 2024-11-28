@@ -1,8 +1,47 @@
 import sys
+import os
+import pandas as pd
+import numpy as np
+from datetime import datetime as dt
+
+
+DATA_DIR = './'
+
+def load_categories_data(categories_filepath, skip_rows=1):
+    """ Parse the CSV file containing category information.
+
+    Args:
+        categories_filepath (str): Path to CSV file containing category info.
+        skip_rows (int, optional): Number of rows to skip when parsing (e.g. for the header). Defaults to 1.
+
+    Returns:
+        _type_: _description_
+    """
+    data = {}
+    print(f'Parsing {categories_filepath}')
+    with open(categories_filepath, 'r') as f:
+        for i, line in enumerate(f.readlines()):
+            if i > skip_rows - 1: # remember: Python indexes are 0-based
+                this_line_info = {} # holder for just this line's info
+                identifier, keyvalue = line.split(',')
+                for item in keyvalue.split(';'):
+                    k, v = item.strip().split('-')
+                    this_line_info[k] = v
+                data[identifier] = this_line_info
+    data = pd.DataFrame(data).T
+    print('... finished!')
+    return data
+
+
+def load_messages_data(messages_filepath, skip_rows=1):
+    pass
 
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    categories_df = load_categories_data(categories_filepath=categories_filepath)
+    messages_df = None
+    merged_df = None
+    return merged_df
 
 
 def clean_data(df):
