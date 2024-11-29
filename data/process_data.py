@@ -14,6 +14,10 @@ DB_TABLE_NAME = 'project2'
 nltk.download('words'); # English word corpus for filtering data
 nltk.download('wordnet')
 
+######################################
+##### FUNCTIONS FOR LOADING DATA #####
+######################################
+
 def check_and_drop_duplicates(df):
     """ Check for duplicates in df - including the index value - and drop if found.
 
@@ -139,11 +143,127 @@ def load_data(messages_filepath, categories_filepath):
     return merged_df
 
 
-def clean_data(df):
+#######################################
+##### FUNCTIONS FOR CLEANING DATA #####
+#######################################
 
-    # for removing non-English words:
-    # https://stackoverflow.com/questions/41290028/removing-non-english-words-from-text-using-python
-    pass
+def clean_data(df):
+    """_summary_
+
+    Args:
+        df (DataFrame): DataFrame to clean.
+
+    Returns:
+        DataFrame: Cleaned DataFrame.
+    """
+
+    # Pull out English component of raw message, if possible.
+    df, _ = extract_english_content_from_raw_messages(df=df, tolerance=0.35)
+
+    # I think this should be part of the ML pipeline.
+    # df = pd.get_dummies(data=df, columns=['genre'], drop_first=True)
+
+    return df
+
+
+def get_english_words_in_string(s, english_word_set=set(nltk.corpus.words.words()), adhoc_words=()):
+    """_summary_
+
+    Args:
+        s (str): String to parse.
+        english_words (set, optional): A set of known English words. Defaults to set(nltk.corpus.words.words()).
+        adhoc_words (collection, optional): Additional words to consider as English, along with english_word_set.
+
+    Returns:
+        tuple: Three-tuple containing ths set of all words in the string, the set of all English words in the string, and the ratio.
+    """
+
+    all_words = [i for i in nltk.wordpunct_tokenize(s.lower()) if i.isalpha()]
+    english_words = [i for i in all_words if i in english_word_set or i in adhoc_words]
+    if all_words:
+        ratio_of_english_words = len(set(english_words))/len(set(all_words))
+    else:
+        ratio_of_english_words = None
+    return all_words, english_words, ratio_of_english_words
+
+
+def extract_english_content_from_raw_messages(df, raw_message_field='message_raw', english_message_field='message_english', tolerance=0.35, adhoc_words=()):
+    """ Parse an input message string, attempting to identify the English segment of it, based on punctuation present in the string 
+    or the ratio of English words in it being larger than tolerance.
+
+    Thank you: https://stackoverflow.com/questions/41290028/removing-non-english-words-from-text-using-python
+
+    Args:
+        df (_type_): In DataFrame containing messages.
+        message_field (str, optional): Column of DataFrame containing the messages to parse. Defaults to 'message_raw'.
+        tolerance (float, optional): Ratio of English words required to define a segment of the string as English. Defaults to 0.35.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    inspect = {} # For debugging.
+    cleaned_english_tokens = {}
+    likely_english_messages_raw = {}
+
+    # Loop over raw messages, evaluate each based on the content of the string.
+    for k, v in df[raw_message_field].items():
+        # Check if string contains a quotation mark - if so, we know it contains a 'message' segment and an 'original' segment.
+        # we can loop over and attempt to identify which is which
+        if v.count('"') > 0:
+            english_tokens_in_this_message = []
+            english_part_of_this_message = []
+            segments = v.split('"')
+            for segment_raw in segments:
+                if len(segment_raw) > 0:
+                    all_words, english_words, ratio_of_english_words = get_english_words_in_string(
+                        s=segment_raw,
+                        adhoc_words=adhoc_words,
+                        )
+
+                    if all_words:
+                        # If the ratio is more than the tolerance, consider this segment as English and add it to clean_message.
+                        if ratio_of_english_words > tolerance:
+                            english_part_of_this_message.append(segment_raw)
+                            english_tokens_in_this_message += english_words
+                        else:
+                            if k in inspect:
+                                inspect[k].append(segment_raw)
+                            else:
+                                inspect[k] = [segment_raw]
+                if english_tokens_in_this_message:
+                    cleaned_english_tokens[k] = list(set(english_tokens_in_this_message))
+                    likely_english_messages_raw[k] = ' '.join(english_part_of_this_message)
+        elif v.count(',') > 0:
+
+            # If no quotation mark but there IS a comma, then the first part of the CSV string should be the English message.
+            # But check to make sure it has more English words than the tolerance level.
+            english_part_of_this_message = v.split(',')[0]
+            all_words, english_words, ratio_of_english_words = get_english_words_in_string(english_part_of_this_message)
+            if ratio_of_english_words and ratio_of_english_words > tolerance:
+                likely_english_messages_raw[k] = english_part_of_this_message
+            else:
+                if k in inspect:
+                    inspect[k].append(v)
+                else:
+                    inspect[k] = [v]
+        else:
+            raise ValueError('Unexpected condition!')
+        
+    # answer = pd.Series(likely_english_messages_raw).to_frame(english_message_field)
+    if english_message_field in df:
+        df = df.drop(english_message_field, axis=1)
+        
+    answer = df.join(pd.Series(likely_english_messages_raw).to_frame(english_message_field), on='id', how='left')
+
+    return answer, inspect
+
+
+#####################################
+##### FUNCTIONS FOR SAVING DATA #####
+#####################################
 
 
 def save_data(df, database_filename, table_name=DB_TABLE_NAME):
@@ -197,7 +317,8 @@ def save_data(df, database_filename, table_name=DB_TABLE_NAME):
         'cold': 'INTEGER',
         'other_weather': 'INTEGER',
         'direct_report': 'INTEGER',
-        'message_raw': f'VARCHAR({df.message_raw.apply(lambda x: len(x)).max()})', # length of the longest 'message'
+        'message_raw': f'VARCHAR({df.message_raw.apply(lambda x: len(x)).max()})', # length of the longest 'message_raw'
+        'message_english': f'VARCHAR({df.message_english.apply(lambda x: 0 if pd.isnull(x) else len(x)).max()})', # length of the longest 'message_english'
         'genre': f'VARCHAR({df.genre.apply(lambda x: len(x)).max()})', # length of the longest 'genre'
     }
     # String to use when creating the table. It looops over the dict's k/v pairs and join each field name and type together.
@@ -219,6 +340,9 @@ def save_data(df, database_filename, table_name=DB_TABLE_NAME):
     conn.close()
     print('... finished!')
 
+
+
+        
 
 def main(
         messages_filepath = os.path.join(DATA_DIR, 'disaster_messages.csv'),
