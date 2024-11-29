@@ -5,10 +5,14 @@ import numpy as np
 from datetime import datetime as dt
 import re
 import sqlite3
-
+import nltk
+from nltk.stem import WordNetLemmatizer as wnl
 
 DATA_DIR = './'
 DB_TABLE_NAME = 'project2'
+
+nltk.download('words'); # English word corpus for filtering data
+nltk.download('wordnet')
 
 def check_and_drop_duplicates(df):
     """ Check for duplicates in df - including the index value - and drop if found.
@@ -99,7 +103,7 @@ def load_messages_data(messages_filepath, skip_rows=1):
                 remaining = remaining.split(genre)[0]
 
                 data[int(identifier.strip(','))] = {
-                    'message': remaining.replace(',', '').strip('"'),
+                    'message_raw': remaining, # .replace(',', '').strip('"'),
                     'genre': genre.strip(','),
                 }
 
@@ -193,7 +197,7 @@ def save_data(df, database_filename, table_name=DB_TABLE_NAME):
         'cold': 'INTEGER',
         'other_weather': 'INTEGER',
         'direct_report': 'INTEGER',
-        'message': f'VARCHAR({df.message.apply(lambda x: len(x)).max()})', # length of the longest 'message'
+        'message_raw': f'VARCHAR({df.message_raw.apply(lambda x: len(x)).max()})', # length of the longest 'message'
         'genre': f'VARCHAR({df.genre.apply(lambda x: len(x)).max()})', # length of the longest 'genre'
     }
     # String to use when creating the table. It looops over the dict's k/v pairs and join each field name and type together.
@@ -214,7 +218,7 @@ def save_data(df, database_filename, table_name=DB_TABLE_NAME):
 
     conn.close()
     print('... finished!')
-    
+
 
 def main(
         messages_filepath = os.path.join(DATA_DIR, 'disaster_messages.csv'),
