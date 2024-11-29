@@ -4,10 +4,11 @@ import pandas as pd
 import numpy as np
 from datetime import datetime as dt
 import re
+import sqlite3
 
 
 DATA_DIR = './'
-
+DB_TABLE_NAME = 'project2'
 
 def check_and_drop_duplicates(df):
     """ Check for duplicates in df - including the index value - and drop if found.
@@ -141,14 +142,84 @@ def clean_data(df):
     pass
 
 
-def save_data(df, database_filename):
-    pass  
+def save_data(df, database_filename, table_name=DB_TABLE_NAME):
+    """ Store DataFrame information into an SQLite3 database.
 
+    Args:
+        df (DataFrame): Source data to insert into database.
+        database_filename (str): Filename for the stored SQLite3 database.
+        table_name (str, optional): Name of database table to write info into. Defaults to DB_TABLE_NAME.
+    """
+    print(f'Generating database {database_filename}.')
+
+    # Create a dict to store field/type information for creating the database table. This will be used to ceate the db table.
+    # The 2 string fields - 'message' and 'genre' - will be VARCHAR with length of the largest detected string in each field.
+    # Everything else will be INTEGER, and 'id' will be the primary key.
+    db_types = {
+        'id': 'INTEGER PRIMARY KEY',
+        'related': 'INTEGER',
+        'request': 'INTEGER',
+        'offer': 'INTEGER',
+        'aid_related': 'INTEGER',
+        'medical_help': 'INTEGER',
+        'medical_products': 'INTEGER',
+        'search_and_rescue': 'INTEGER',
+        'security': 'INTEGER',
+        'military': 'INTEGER',
+        'child_alone': 'INTEGER',
+        'water': 'INTEGER',
+        'food': 'INTEGER',
+        'shelter': 'INTEGER',
+        'clothing': 'INTEGER',
+        'money': 'INTEGER',
+        'missing_people': 'INTEGER',
+        'refugees': 'INTEGER',
+        'death': 'INTEGER',
+        'other_aid': 'INTEGER',
+        'infrastructure_related': 'INTEGER',
+        'transport': 'INTEGER',
+        'buildings': 'INTEGER',
+        'electricity': 'INTEGER',
+        'tools': 'INTEGER',
+        'hospitals': 'INTEGER',
+        'shops': 'INTEGER',
+        'aid_centers': 'INTEGER',
+        'other_infrastructure': 'INTEGER',
+        'weather_related': 'INTEGER',
+        'floods': 'INTEGER',
+        'storm': 'INTEGER',
+        'fire': 'INTEGER',
+        'earthquake': 'INTEGER',
+        'cold': 'INTEGER',
+        'other_weather': 'INTEGER',
+        'direct_report': 'INTEGER',
+        'message': f'VARCHAR({df.message.apply(lambda x: len(x)).max()})', # length of the longest 'message'
+        'genre': f'VARCHAR({df.genre.apply(lambda x: len(x)).max()})', # length of the longest 'genre'
+    }
+    # String to use when creating the table. It looops over the dict's k/v pairs and join each field name and type together.
+    create_table_str = "CREATE TABLE data (" + ", ". join([f'{k} {v}' for k, v in db_types.items()]) + " );"
+
+    conn = sqlite3.connect(database_filename) # Connect to db.
+    cur = conn.cursor() # Get a cursor.
+
+    cur.execute("DROP TABLE IF EXISTS data") # Drop the 'data' table (in case we're re-writing it).
+    conn.commit()
+
+    print(f'... creating table "{table_name}"')
+    cur.execute(create_table_str) # Create the 'data' table.
+
+    print(f'... inserting data into "{table_name}" from DataFrame.')
+    df.to_sql(name=table_name, con=conn, if_exists='replace') # Insert data from df into the database.
+    conn.commit()
+
+    conn.close()
+    print('... finished!')
+    
 
 def main(
         messages_filepath = os.path.join(DATA_DIR, 'disaster_messages.csv'),
         categories_filepath = os.path.join(DATA_DIR, 'disaster_categories.csv'),
-        database_filepath = os.path.join(DATA_DIR, 'project_data.sqlite'),
+        database_filepath = os.path.join(DATA_DIR, 'project_data.sqlite3'),
 ):
     """_summary_
 
@@ -164,7 +235,7 @@ def main(
     # Clean combined data.
 
     # Save cleaned data to on-disk database.
-    
+    save_data(df, database_filepath)
 
 
 def main_example():
