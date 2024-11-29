@@ -1,8 +1,30 @@
 import sys
+import os
+import pandas as pd
+import sqlite3
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+import nltk
 
 
-def load_data(database_filepath):
-    pass
+# Necessary NLTK downloads (for filtering English words)
+nltk.download('words');
+nltk.download('wordnet');
+
+DATA_DIR = '../data'
+DB_TABLE_NAME = 'project2'
+
+
+def load_data(database_filepath=os.path.join(DATA_DIR, 'project_data.sqlite3')):
+    # make sure it works
+    conn = sqlite3.connect()
+
+    # TODO: create a cursor object
+    cur = conn.cursor()
+
+    df = pd.read_sql(f'SELECT * from {DB_TABLE_NAME}', con=conn, index_col='id')
+    conn.close()
+    return df
 
 
 def tokenize(text):
@@ -22,6 +44,10 @@ def save_model(model, model_filepath):
 
 
 def main():
+    pass
+
+
+def main_example():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))

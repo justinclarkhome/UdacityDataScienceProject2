@@ -1,18 +1,17 @@
 import sys
 import os
 import pandas as pd
-import numpy as np
-from datetime import datetime as dt
 import re
 import sqlite3
 import nltk
-from nltk.stem import WordNetLemmatizer as wnl
+
 
 DATA_DIR = './'
 DB_TABLE_NAME = 'project2'
 
-nltk.download('words'); # English word corpus for filtering data
-nltk.download('wordnet')
+# Necessary NLTK downloads (for filtering English words)
+nltk.download('words');
+nltk.download('wordnet');
 
 ######################################
 ##### FUNCTIONS FOR LOADING DATA #####
@@ -66,7 +65,13 @@ def load_categories_data(categories_filepath, skip_rows=1):
     return data
 
 
-def load_messages_data(messages_filepath, skip_rows=1):
+def load_messages_data(messages_filepath):
+    data = pd.read_csv(messages_filepath, sep=',', quotechar='"', index_col='id')
+    data = check_and_drop_duplicates(df=data)
+    return data
+
+
+def load_messages_data_OLD(messages_filepath, skip_rows=1):
     """ Parse the CSV file containing message information.
 
     Each line has a vaguely consistent format, something like:
@@ -158,7 +163,7 @@ def clean_data(df):
     """
 
     # Pull out English component of raw message, if possible.
-    df, _ = extract_english_content_from_raw_messages(df=df, tolerance=0.35)
+    # df, _ = extract_english_content_from_raw_messages(df=df, tolerance=0.35)
 
     # I think this should be part of the ML pipeline.
     # df = pd.get_dummies(data=df, columns=['genre'], drop_first=True)
@@ -187,6 +192,7 @@ def get_english_words_in_string(s, english_word_set=set(nltk.corpus.words.words(
     return all_words, english_words, ratio_of_english_words
 
 
+# apply this in the cleaning phase to see if there's any point?
 def extract_english_content_from_raw_messages(df, raw_message_field='message_raw', english_message_field='message_english', tolerance=0.35, adhoc_words=()):
     """ Parse an input message string, attempting to identify the English segment of it, based on punctuation present in the string 
     or the ratio of English words in it being larger than tolerance.
@@ -266,15 +272,15 @@ def extract_english_content_from_raw_messages(df, raw_message_field='message_raw
 #####################################
 
 
-def save_data(df, database_filename, table_name=DB_TABLE_NAME):
+def save_data(df, database_filepath, table_name=DB_TABLE_NAME):
     """ Store DataFrame information into an SQLite3 database.
 
     Args:
         df (DataFrame): Source data to insert into database.
-        database_filename (str): Filename for the stored SQLite3 database.
+        database_filepath (str): Filename for the stored SQLite3 database.
         table_name (str, optional): Name of database table to write info into. Defaults to DB_TABLE_NAME.
     """
-    print(f'Generating database {database_filename}.')
+    print(f'Generating database {database_filepath}.')
 
     # Create a dict to store field/type information for creating the database table. This will be used to ceate the db table.
     # The 2 string fields - 'message' and 'genre' - will be VARCHAR with length of the largest detected string in each field.
@@ -317,14 +323,16 @@ def save_data(df, database_filename, table_name=DB_TABLE_NAME):
         'cold': 'INTEGER',
         'other_weather': 'INTEGER',
         'direct_report': 'INTEGER',
-        'message_raw': f'VARCHAR({df.message_raw.apply(lambda x: len(x)).max()})', # length of the longest 'message_raw'
-        'message_english': f'VARCHAR({df.message_english.apply(lambda x: 0 if pd.isnull(x) else len(x)).max()})', # length of the longest 'message_english'
+        'message': f'VARCHAR({df.message.apply(lambda x: 0 if pd.isnull(x) else len(x)).max()})', # length of the longest 'message'
+        'original': f'VARCHAR({df.original.apply(lambda x: 0 if pd.isnull(x) else len(x)).max()})', # length of the longest 'original'
+        # 'message_raw': f'VARCHAR({df.message_raw.apply(lambda x: len(x)).max()})', # length of the longest 'message_raw'
+        # 'message_english': f'VARCHAR({df.message_english.apply(lambda x: 0 if pd.isnull(x) else len(x)).max()})', # length of the longest 'message_english'
         'genre': f'VARCHAR({df.genre.apply(lambda x: len(x)).max()})', # length of the longest 'genre'
     }
     # String to use when creating the table. It looops over the dict's k/v pairs and join each field name and type together.
     create_table_str = "CREATE TABLE data (" + ", ". join([f'{k} {v}' for k, v in db_types.items()]) + " );"
 
-    conn = sqlite3.connect(database_filename) # Connect to db.
+    conn = sqlite3.connect(database_filepath) # Connect to db.
     cur = conn.cursor() # Get a cursor.
 
     cur.execute("DROP TABLE IF EXISTS data") # Drop the 'data' table (in case we're re-writing it).
