@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import sqlite3
+import numpy as np
 
 
 ######################################
@@ -92,41 +93,45 @@ def load_data(messages_filepath, categories_filepath):
 ##### FUNCTIONS FOR CLEANING DATA #####
 #######################################
 
-def clean_data(df):
+
+def drop_bool_columns_with_constant_value(df):
+    """ Identify columns of int data type and drop any that are constant value.
+    
+    Args:
+        df (DataFrame): DataFrame to evaluate.
+
+    Returns:
+        DataFrame: DataFrame with constant-value int columns removed.
+    """
+    int_columns = [k for k, v in df.dtypes.items() if v in [int, np.int64]]
+    df_int = df[int_columns]
+    unique_int_values = df_int.stack().unique()
+    for unique_int_value in unique_int_values:
+        to_drop = list(df_int.loc[:, df_int.apply(lambda x: x==unique_int_value).all()].columns)
+        if to_drop:
+            print(f"Dropping int columns that are all {unique_int_value}: {', '.join(to_drop)}")
+            df = df.drop(to_drop, axis=1)
+    return df
+
+
+def clean_data(df, categrorial_columns=['genre', 'related']):
     """ Take the raw merged dataframe and apply cleaning steps.
 
     Args:
         df (DataFrame): DataFrame to clean.
-
+        categorial_columns (list of str): Columns to create dummy variables from (categorical variables with more than 2 levels).
     Returns:
         DataFrame: Cleaned DataFrame.
     """
     
-    df = pd.get_dummies(data=df, columns=['genre'], drop_first=True)
+    df = pd.get_dummies(data=df, columns=categrorial_columns, drop_first=True)
     df = check_and_drop_duplicates(df=df)
 
+    # Check if any categorical/boolean column is all a single value, and drop if so.
+    # We do not need to keep any column of constants in this context.
+    df = drop_bool_columns_with_constant_value(df)
+
     return df
-
-
-# def get_english_words_in_string(s, english_word_set=set(nltk.corpus.words.words()), adhoc_words=()):
-#     """_summary_
-
-#     Args:
-#         s (str): String to parse.
-#         english_words (set, optional): A set of known English words. Defaults to set(nltk.corpus.words.words()).
-#         adhoc_words (collection, optional): Additional words to consider as English, along with english_word_set.
-
-#     Returns:
-#         tuple: Three-tuple containing ths set of all words in the string, the set of all English words in the string, and the ratio.
-#     """
-
-#     all_words = [i for i in nltk.wordpunct_tokenize(s.lower()) if i.isalpha()]
-#     english_words = [i for i in all_words if i in english_word_set or i in adhoc_words]
-#     if all_words:
-#         ratio_of_english_words = len(set(english_words))/len(set(all_words))
-#     else:
-#         ratio_of_english_words = None
-#     return all_words, english_words, ratio_of_english_words
 
 
 #####################################
@@ -153,7 +158,8 @@ def save_data(df, database_filepath, table_name='project2'):
 
     db_types = {
         'id': 'INTEGER PRIMARY KEY',
-        'related': 'INTEGER',
+        'related_1': 'INTEGER',
+        'related_2': 'INTEGER',
         'request': 'INTEGER',
         'offer': 'INTEGER',
         'aid_related': 'INTEGER',

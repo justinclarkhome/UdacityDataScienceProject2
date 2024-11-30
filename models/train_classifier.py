@@ -11,6 +11,27 @@ import nltk
 nltk.download('words');
 nltk.download('wordnet');
 
+# def get_english_words_in_string(s, english_word_set=set(nltk.corpus.words.words()), adhoc_words=()):
+#     """_summary_
+
+#     Args:
+#         s (str): String to parse.
+#         english_words (set, optional): A set of known English words. Defaults to set(nltk.corpus.words.words()).
+#         adhoc_words (collection, optional): Additional words to consider as English, along with english_word_set.
+
+#     Returns:
+#         tuple: Three-tuple containing ths set of all words in the string, the set of all English words in the string, and the ratio.
+#     """
+
+#     all_words = [i for i in nltk.wordpunct_tokenize(s.lower()) if i.isalpha()]
+#     english_words = [i for i in all_words if i in english_word_set or i in adhoc_words]
+#     if all_words:
+#         ratio_of_english_words = len(set(english_words))/len(set(all_words))
+#     else:
+#         ratio_of_english_words = None
+#     return all_words, english_words, ratio_of_english_words
+
+
 
 def load_data(database_filepath, db_table_name='project2'):
     print(database_filepath)
