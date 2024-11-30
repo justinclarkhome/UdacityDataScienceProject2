@@ -6,22 +6,35 @@ import sqlite3
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from nltk.stem import WordNetLemmatizer
 import nltk
 from nltk.corpus import stopwords
 from sklearn.metrics import accuracy_score, f1_score, precision_score
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_extraction.text import TfidfVectorizer
+import pickle
+
 
 # Downloads for NLTK tools
 nltk.download('words', quiet=True);
 nltk.download('wordnet', quiet=True);
 nltk.download('punkt_tab', quiet=True);
-nltk.download('stopwords', quiet=True)
+nltk.download('stopwords', quiet=True);
+
 
 def display_results(Y_test, Y_pred, average='macro'):
+    """_summary_
+
+    Args:
+        Y_test (_type_): _description_
+        Y_pred (_type_): _description_
+        average (str, optional): _description_. Defaults to 'macro'.
+    """
     f1 = f1_score(Y_test, Y_pred, average=average, zero_division=0)
     accuracy = accuracy_score(Y_test, Y_pred)
     precision = precision_score(Y_test, Y_pred, average=average, zero_division=0) 
@@ -29,28 +42,6 @@ def display_results(Y_test, Y_pred, average='macro'):
     print(f"F1: {f1:.2f}")
     print(f"Accuracy: {accuracy:.2f}")
     print(f"Precision: {precision:.2f}")
-
-
-# def get_english_words_in_string(s, english_word_set=set(nltk.corpus.words.words()), adhoc_words=()):
-#     """_summary_
-
-#     Args:
-#         s (str): String to parse.
-#         english_words (set, optional): A set of known English words. Defaults to set(nltk.corpus.words.words()).
-#         adhoc_words (collection, optional): Additional words to consider as English, along with english_word_set.
-
-#     Returns:
-#         tuple: Three-tuple containing ths set of all words in the string, the set of all English words in the string, and the ratio.
-#     """
-
-#     all_words = [i for i in nltk.wordpunct_tokenize(s.lower()) if i.isalpha()]
-#     english_words = [i for i in all_words if i in english_word_set or i in adhoc_words]
-#     if all_words:
-#         ratio_of_english_words = len(set(english_words))/len(set(all_words))
-#     else:
-#         ratio_of_english_words = None
-#     return all_words, english_words, ratio_of_english_words
-
 
 
 def load_data(database_filepath, db_table_name='project2'):
@@ -78,27 +69,130 @@ def load_data(database_filepath, db_table_name='project2'):
     return X, Y, category_names
 
 
-def tokenize(text):
-    pass
+def tokenize(
+        text, 
+        lemmatize=True, 
+        make_lowercase=True, 
+        remove_non_words=True, 
+        remove_stop_words=True, 
+        verbose=False,
+        ):
+    """_summary_
+
+    Args:
+        text (_type_): _description_
+        lemmatize (bool, optional): _description_. Defaults to True.
+        make_lowercase (bool, optional): _description_. Defaults to True.
+        remove_non_words (bool, optional): _description_. Defaults to True.
+        remove_stop_words (bool, optional): _description_. Defaults to True.
+        verbose (bool, optional): _description_. Defaults to False.
+    """
+    def get_tokens_per_row(text, make_lowercase):
+        if verbose:
+            print('... tokenizing and converting to lowercase.' if make_lowercase else '... tokenizing.')
+        return [nltk.word_tokenize(s.lower() if make_lowercase else s) for s in text]
+    
+    def _remove_non_words(tokens_by_message):
+        if verbose:
+            print('... removing non-words.')
+        answer = []
+        for tokens in tokens_by_message:
+            answer.append([i for i in tokens if i.isalpha()])
+        return answer
+
+    def _remove_stop_words(tokens_by_message, stop_words=set(nltk.corpus.stopwords.words('english'))):
+        if verbose:
+            print('... removing stop words.')
+        answer = []
+        for tokens in tokens_by_message:
+            answer.append([i for  i in tokens if i not in stop_words])
+        return answer
+    
+    def _lemmatize(tokens_by_message, lemmatizer=nltk.stem.WordNetLemmatizer()):
+        if verbose:
+            print('... lemmatizing.')
+        answer = []
+        for tokens in tokens_by_message:
+            answer.append([lemmatizer.lemmatize(i).strip() for i in tokens])
+        return answer
+
+    tokens_by_message = get_tokens_per_row(text, make_lowercase)
+
+    if lemmatize:
+        tokens_by_message = _lemmatize(tokens_by_message)
+
+    if remove_stop_words:
+        tokens_by_message = _remove_stop_words(tokens_by_message)
+        
+    if remove_non_words:
+        tokens_by_message = _remove_non_words(tokens_by_message)
+
+    # now combine back to strings (one per row) so we can pass it back to TfidfTransformer
+    processed_messages = [' '.join(tokens) for tokens in tokens_by_message]
+
+    return processed_messages
 
 
-def build_model():
-    pass
+def build_model(
+        use_model=RandomForestClassifier(random_state=42, n_jobs=-1), 
+        grid_search_params={}, 
+        ):
+    """_summary_
+
+    Args:
+        use_model (_type_, optional): _description_. Defaults to RandomForestClassifier(random_state=42, n_jobs=-1).
+        grid_search_params (dict, optional): _description_. Defaults to {}.
+
+    Returns:
+        _type_: _description_
+    """
+
+    # Thank you: https://stackoverflow.com/questions/67768470/valueerror-found-input-variables-with-inconsistent-numbers-of-samples-6-80
+    transformer = ColumnTransformer([
+        ('vect', TfidfVectorizer(tokenizer=tokenize, token_pattern=None), 'message'),
+        ('genre_onehot', OneHotEncoder(dtype='int'), ['genre']),
+    ], remainder='drop')
+
+    pipeline = Pipeline([
+        ('vect', transformer),    
+        ('model', use_model),
+    ])
+        
+    return GridSearchCV(pipeline, grid_search_params, n_jobs=-1)
+
+    # param_search.fit(X_train, Y_train)0
+    # optimal_model = param_search.best_estimator_
+
+
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    """_summary_
+
+    Args:
+        model (_type_): _description_
+        X_test (_type_): _description_
+        Y_test (_type_): _description_
+        category_names (_type_): _description_
+    """
+    Y_pred = model.predict(X_test)
+    print(classification_report(Y_test, Y_pred, target_names=category_names, zero_division=0.0))
 
 
 def save_model(model, model_filepath):
-    pass
+    """_summary_
+
+    Args:
+        model (_type_): _description_
+        model_filepath (_type_): _description_
+    """
+    print(f'Pickling model as {model_filepath}.')
+    with open(model_filepath, 'wb') as f:
+        pickle.dump(model, f)
+    print('... finished!')
 
 
 def main():
-    pass
-
-
-def main_example():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))

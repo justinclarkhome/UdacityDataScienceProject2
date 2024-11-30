@@ -120,7 +120,7 @@ def check_for_columns_with_constant_value(df, drop=False):
     return df
 
 
-def clean_data(df, categrorial_columns=['genre', 'related']):
+def clean_data(df, trim_related=True):
     """ Take the raw merged dataframe and apply cleaning steps.
 
     Args:
@@ -129,7 +129,16 @@ def clean_data(df, categrorial_columns=['genre', 'related']):
     Returns:
         DataFrame: Cleaned DataFrame.
     """
-    
+    # The 'related' category has values of 0/1/2, but all the other categories are binary.
+    # Not clear if this is a data issue or not, so here we can trim it to 0/1, if desired.
+    if trim_related:
+        print("... replacing values of 2 with 1 in 'related' field to make it binary.")
+        df = pd.concat([
+            df.drop('related', axis=1),
+            df.related.replace(2, 1).to_frame(),
+        ], axis=1)
+        
+
     # If we're going to use a random-forest style classifier, we don't need dummies.
     # df = pd.get_dummies(data=df, columns=categrorial_columns, drop_first=True)
     df = check_and_drop_duplicates(df=df)
