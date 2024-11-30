@@ -4,19 +4,29 @@ import pandas as pd
 import numpy as np
 import sqlite3
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import nltk
-
-
+from sklearn.metrics import accuracy_score, f1_score, precision_score
 
 # Necessary NLTK downloads (for filtering English words)
 nltk.download('words');
 nltk.download('wordnet');
 nltk.download('punkt_tab');
+
+
+def display_results(Y_test, Y_pred, average='macro'):
+    f1 = f1_score(Y_test, Y_pred, average=average, zero_division=0)
+    accuracy = accuracy_score(Y_test, Y_pred)
+    precision = precision_score(Y_test, Y_pred, average=average, zero_division=0) 
+
+    print(f"F1: {f1:.2f}")
+    print(f"Accuracy: {accuracy:.2f}")
+    print(f"Precision: {precision:.2f}")
+
 
 # def get_english_words_in_string(s, english_word_set=set(nltk.corpus.words.words()), adhoc_words=()):
 #     """_summary_
