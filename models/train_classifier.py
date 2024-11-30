@@ -7,16 +7,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import nltk
+from nltk.corpus import stopwords
 from sklearn.metrics import accuracy_score, f1_score, precision_score
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.compose import ColumnTransformer
 
-# Necessary NLTK downloads (for filtering English words)
-nltk.download('words');
-nltk.download('wordnet');
-nltk.download('punkt_tab');
 
+# Downloads for NLTK tools
+nltk.download('words', quiet=True);
+nltk.download('wordnet', quiet=True);
+nltk.download('punkt_tab', quiet=True);
+nltk.download('stopwords', quiet=True)
 
 def display_results(Y_test, Y_pred, average='macro'):
     f1 = f1_score(Y_test, Y_pred, average=average, zero_division=0)
