@@ -1,15 +1,22 @@
 import sys
 import os
 import pandas as pd
+import numpy as np
 import sqlite3
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
 import nltk
+
 
 
 # Necessary NLTK downloads (for filtering English words)
 nltk.download('words');
 nltk.download('wordnet');
+nltk.download('punkt_tab');
 
 # def get_english_words_in_string(s, english_word_set=set(nltk.corpus.words.words()), adhoc_words=()):
 #     """_summary_
@@ -34,12 +41,28 @@ nltk.download('wordnet');
 
 
 def load_data(database_filepath, db_table_name='project2'):
+    """_summary_
+
+    Args:
+        database_filepath (_type_): _description_
+        db_table_name (str, optional): _description_. Defaults to 'project2'.
+
+    Returns:
+        _type_: _description_
+    """
     print(database_filepath)
     conn = sqlite3.connect(database_filepath)
     cur = conn.cursor()
     df = pd.read_sql(f'SELECT * from {db_table_name}', con=conn, index_col='id')
     conn.close()
-    return df
+
+    category_names = [k for k,v in df.dtypes.items() if v in [int, np.int64]]
+    assert len(category_names) == 36, f'There should be 36 categories (got {len(category_names)})'
+
+    Y = df[category_names]
+    X = df.drop(category_names, axis=1)
+
+    return X, Y, category_names
 
 
 def tokenize(text):

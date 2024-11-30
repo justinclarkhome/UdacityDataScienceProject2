@@ -94,7 +94,7 @@ def load_data(messages_filepath, categories_filepath):
 #######################################
 
 
-def drop_bool_columns_with_constant_value(df):
+def check_for_columns_with_constant_value(df, drop=False):
     """ Identify columns of int data type and drop any that are constant value.
     
     Args:
@@ -107,10 +107,16 @@ def drop_bool_columns_with_constant_value(df):
     df_int = df[int_columns]
     unique_int_values = df_int.stack().unique()
     for unique_int_value in unique_int_values:
-        to_drop = list(df_int.loc[:, df_int.apply(lambda x: x==unique_int_value).all()].columns)
-        if to_drop:
-            print(f"Dropping int columns that are all {unique_int_value}: {', '.join(to_drop)}")
-            df = df.drop(to_drop, axis=1)
+        constant_cols = list(df_int.loc[:, df_int.apply(
+            lambda x: x==unique_int_value).all()].columns)
+        if constant_cols:
+            print(f"Detected int columns that are all {
+                unique_int_value}: {', '.join(constant_cols)}")
+            if drop:
+                print('... dropping from dataset.')
+                df = df.drop(constant_cols, axis=1)
+            else:
+                print('... column(s) will NOT be dropped.')
     return df
 
 
@@ -124,12 +130,12 @@ def clean_data(df, categrorial_columns=['genre', 'related']):
         DataFrame: Cleaned DataFrame.
     """
     
-    df = pd.get_dummies(data=df, columns=categrorial_columns, drop_first=True)
+    # If we're going to use a random-forest style classifier, we don't need dummies.
+    # df = pd.get_dummies(data=df, columns=categrorial_columns, drop_first=True)
     df = check_and_drop_duplicates(df=df)
 
-    # Check if any categorical/boolean column is all a single value, and drop if so.
-    # We do not need to keep any column of constants in this context.
-    df = drop_bool_columns_with_constant_value(df)
+    # Check if any categorical/boolean column is all a single value, and optionally drop.
+    df = check_for_columns_with_constant_value(df)
 
     return df
 
@@ -158,8 +164,7 @@ def save_data(df, database_filepath, table_name='project2'):
 
     db_types = {
         'id': 'INTEGER PRIMARY KEY',
-        'related_1': 'INTEGER',
-        'related_2': 'INTEGER',
+        'related': 'INTEGER',
         'request': 'INTEGER',
         'offer': 'INTEGER',
         'aid_related': 'INTEGER',
@@ -195,10 +200,9 @@ def save_data(df, database_filepath, table_name='project2'):
         'cold': 'INTEGER',
         'other_weather': 'INTEGER',
         'direct_report': 'INTEGER',        
-        'message': f'VARCHAR({get_max_string_length_in_column(df.message)})', # length of the longest 'message'
-        'original': f'VARCHAR({get_max_string_length_in_column(df.original)})', # length of the longest 'original'
-        'genre_news': 'INTEGER',
-        'genre_social': 'INTEGER',
+        'message': f'VARCHAR({get_max_string_length_in_column(df.message)})',
+        'original': f'VARCHAR({get_max_string_length_in_column(df.original)})',
+        'genre': f'VARCHAR({get_max_string_length_in_column(df.genre)})',
     }
     # String to use when creating the table. It looops over the dict's k/v pairs and join each field name and type together.
     create_table_str = "CREATE TABLE data (" + ", ". join([f'{k} {v}' for k, v in db_types.items()]) + " );"
