@@ -11,18 +11,12 @@ import nltk
 nltk.download('words');
 nltk.download('wordnet');
 
-DATA_DIR = '../data'
-DB_TABLE_NAME = 'project2'
 
-
-def load_data(database_filepath=os.path.join(DATA_DIR, 'project_data.sqlite3')):
-    # make sure it works
-    conn = sqlite3.connect()
-
-    # TODO: create a cursor object
+def load_data(database_filepath, db_table_name='project2'):
+    print(database_filepath)
+    conn = sqlite3.connect(database_filepath)
     cur = conn.cursor()
-
-    df = pd.read_sql(f'SELECT * from {DB_TABLE_NAME}', con=conn, index_col='id')
+    df = pd.read_sql(f'SELECT * from {db_table_name}', con=conn, index_col='id')
     conn.close()
     return df
 
