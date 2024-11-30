@@ -13,7 +13,7 @@ from nltk.corpus import stopwords
 from sklearn.metrics import accuracy_score, f1_score, precision_score
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
-
+from sklearn.model_selection import GridSearchCV
 
 # Downloads for NLTK tools
 nltk.download('words', quiet=True);
