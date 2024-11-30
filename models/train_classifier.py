@@ -1,5 +1,4 @@
 import sys
-import os
 import pandas as pd
 import numpy as np
 import sqlite3
@@ -12,8 +11,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
-from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
-from sklearn.multioutput import MultiOutputClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -27,13 +25,13 @@ nltk.download('punkt_tab', quiet=True);
 nltk.download('stopwords', quiet=True);
 
 
-def display_results(Y_test, Y_pred, average='macro'):
-    """_summary_
+def display_results(Y_test, Y_pred, average='micro'):
+    """ Display R1, Accuracy and Precision scores for predictions vs observed values.
 
     Args:
-        Y_test (_type_): _description_
-        Y_pred (_type_): _description_
-        average (str, optional): _description_. Defaults to 'macro'.
+        Y_test (DataFrame): Observed Y data.
+        Y_pred (DataFrame or array): Predicted Y data.
+        average (str, optional): Method to use in F1 score. Defaults to 'micro'.
     """
     f1 = f1_score(Y_test, Y_pred, average=average, zero_division=0)
     accuracy = accuracy_score(Y_test, Y_pred)
@@ -45,14 +43,14 @@ def display_results(Y_test, Y_pred, average='macro'):
 
 
 def load_data(database_filepath, db_table_name='project2'):
-    """_summary_
+    """ Load source data from SQLite3 database, and separate into X and Y data for use in classification model.
 
     Args:
-        database_filepath (_type_): _description_
-        db_table_name (str, optional): _description_. Defaults to 'project2'.
+        database_filepath (str): Filepath to SQLite3 database file.
+        db_table_name (str, optional): Table to query in the database. Defaults to 'project2'.
 
     Returns:
-        _type_: _description_
+        tuple: Three-tuple of X data (DataFrame), Y data (DataFrame), and category names (list of str).
     """
     print(database_filepath)
     conn = sqlite3.connect(database_filepath)
@@ -73,19 +71,20 @@ def tokenize(
         text, 
         lemmatize=True, 
         make_lowercase=True, 
-        remove_non_words=True, 
+        remove_non_words=False, 
         remove_stop_words=True, 
         verbose=False,
         ):
-    """_summary_
+    """ Custom function to tokenize strings contained in text, and convert the resulting 
+    tokens back into strings so they can be further processed by TfidfVectorizer class.
 
     Args:
-        text (_type_): _description_
-        lemmatize (bool, optional): _description_. Defaults to True.
-        make_lowercase (bool, optional): _description_. Defaults to True.
-        remove_non_words (bool, optional): _description_. Defaults to True.
-        remove_stop_words (bool, optional): _description_. Defaults to True.
-        verbose (bool, optional): _description_. Defaults to False.
+        text (Series): Series of strings to parse.
+        lemmatize (bool, optional): Apply lemmatization to tokens. Defaults to True.
+        make_lowercase (bool, optional): Make all tokens lower case. Defaults to True.
+        remove_non_words (bool, optional): Remove non-English words from tokens. Defaults to True.
+        remove_stop_words (bool, optional): Remove stop words from tokens. Defaults to True.
+        verbose (bool, optional): Print messages to screem. Defaults to False.
     """
     def get_tokens_per_row(text, make_lowercase):
         if verbose:
@@ -137,17 +136,19 @@ def build_model(
         use_model=RandomForestClassifier(random_state=42, n_jobs=-1), 
         grid_search_params={}, 
         ):
-    """_summary_
+    """ Build a classification model using a Scitkit-Learn pipline to procss text and 
+    generate a TF-IDF matrix. Optionally apply a paramter grid search.
+
+    Thank you: https://stackoverflow.com/questions/67768470/valueerror-found-input-variables-with-inconsistent-numbers-of-samples-6-80
 
     Args:
-        use_model (_type_, optional): _description_. Defaults to RandomForestClassifier(random_state=42, n_jobs=-1).
-        grid_search_params (dict, optional): _description_. Defaults to {}.
+        use_model (object, optional): Classifier model to utilize. Defaults to RandomForestClassifier(random_state=42, n_jobs=-1).
+        grid_search_params (dict, optional): Dictionary of paramters and associated grid search values. Defaults to {}.
 
     Returns:
-        _type_: _description_
+        object: GridSearchCV object containing the classification model.
     """
 
-    # Thank you: https://stackoverflow.com/questions/67768470/valueerror-found-input-variables-with-inconsistent-numbers-of-samples-6-80
     transformer = ColumnTransformer([
         ('vect', TfidfVectorizer(tokenizer=tokenize, token_pattern=None), 'message'),
         ('genre_onehot', OneHotEncoder(dtype='int'), ['genre']),
@@ -160,31 +161,27 @@ def build_model(
         
     return GridSearchCV(pipeline, grid_search_params, n_jobs=-1)
 
-    # param_search.fit(X_train, Y_train)0
-    # optimal_model = param_search.best_estimator_
-
-
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    """_summary_
+    """ Generates a classification report for the fit model.
 
     Args:
-        model (_type_): _description_
-        X_test (_type_): _description_
-        Y_test (_type_): _description_
-        category_names (_type_): _description_
+        model (object): A fit classication model.
+        X_test (_type_): Test X data to use for preiction.
+        Y_test (_type_): Test Y data (observed) to compare against prediction.
+        category_names (list of str): Target (Y) category labels.
     """
     Y_pred = model.predict(X_test)
     print(classification_report(Y_test, Y_pred, target_names=category_names, zero_division=0.0))
 
 
 def save_model(model, model_filepath):
-    """_summary_
+    """ Store fit model as a pickle object.
 
     Args:
-        model (_type_): _description_
-        model_filepath (_type_): _description_
+        model (object): A fit classification model.
+        model_filepath (str): Filepath for pickle file.
     """
     print(f'Pickling model as {model_filepath}.')
     with open(model_filepath, 'wb') as f:
