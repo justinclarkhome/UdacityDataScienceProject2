@@ -233,35 +233,6 @@ def save_data(df, database_filepath, table_name='project2'):
     print('... finished!')
 
 
-
-        
-
-def main_debug(
-        messages_filepath = './disaster_messages.csv',
-        categories_filepath = './disaster_categories.csv',
-        database_filepath = './project_data.sqlite3',
-):
-    """_summary_
-
-    Args:
-        messages_filepath (str, optional): _description_. Defaults to './disaster_messages.csv'.
-        categories_filepath (str, optional): _description_. Defaults to './disaster_categories.csv'.
-        database_filepath (str, optional): _description_. Defaults to './project_data.sqlite3'.
-    """
-
-    print('Loading data...\n    MESSAGES: {}\n    CATEGORIES: {}'
-            .format(messages_filepath, categories_filepath))
-    df = load_data(messages_filepath, categories_filepath)
-
-    print('Cleaning data...')
-    df = clean_data(df)
-    
-    print('Saving data...\n    DATABASE: {}'.format(database_filepath))
-    save_data(df, database_filepath)
-    
-    print('Cleaned data saved to database!')
-
-
 def main():
     """_summary_
     """

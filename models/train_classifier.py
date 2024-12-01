@@ -8,13 +8,11 @@ from sklearn.pipeline import Pipeline
 import nltk
 from nltk.corpus import stopwords
 from sklearn.metrics import accuracy_score, f1_score, precision_score
-from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from nltk.tokenize import word_tokenize
 import pickle
 
 
@@ -63,83 +61,33 @@ def load_data(database_filepath, db_table_name='project2'):
 
     Y = df[category_names]
     X = df.drop(category_names, axis=1)
+    X = df.message
 
     return X, Y, category_names
 
 
-def tokenize(
-        text, 
-        lemmatize=True, 
-        make_lowercase=True, 
-        remove_non_words=False, 
-        remove_stop_words=True, 
-        verbose=False,
-        ):
-    """ Custom function to tokenize strings contained in text, and convert the resulting 
-    tokens back into strings so they can be further processed by TfidfVectorizer class.
+def tokenize(text):
+    """ Custom function to tokenize strings contained in text.
 
     Args:
         text (Series): Series of strings to parse.
-        lemmatize (bool, optional): Apply lemmatization to tokens. Defaults to True.
-        make_lowercase (bool, optional): Make all tokens lower case. Defaults to True.
-        remove_non_words (bool, optional): Remove non-English words from tokens. Defaults to True.
-        remove_stop_words (bool, optional): Remove stop words from tokens. Defaults to True.
-        verbose (bool, optional): Print messages to screem. Defaults to False.
     """
-    def get_tokens_per_row(text, make_lowercase):
-        if verbose:
-            print('... tokenizing and converting to lowercase.' if make_lowercase else '... tokenizing.')
-        return [nltk.word_tokenize(s.lower() if make_lowercase else s) for s in text]
-    
-    def _remove_non_words(tokens_by_message):
-        if verbose:
-            print('... removing non-words.')
-        answer = []
-        for tokens in tokens_by_message:
-            answer.append([i for i in tokens if i.isalpha()])
-        return answer
+    tokens = word_tokenize(text)
 
-    def _remove_stop_words(tokens_by_message, stop_words=set(nltk.corpus.stopwords.words('english'))):
-        if verbose:
-            print('... removing stop words.')
-        answer = []
-        for tokens in tokens_by_message:
-            answer.append([i for  i in tokens if i not in stop_words])
-        return answer
-    
-    def _lemmatize(tokens_by_message, lemmatizer=nltk.stem.WordNetLemmatizer()):
-        if verbose:
-            print('... lemmatizing.')
-        answer = []
-        for tokens in tokens_by_message:
-            answer.append([lemmatizer.lemmatize(i).strip() for i in tokens])
-        return answer
+    lemmatizer=nltk.stem.WordNetLemmatizer()
+    tokens = [lemmatizer.lemmatize(i).strip().lower() for i in tokens]
 
-    tokens_by_message = get_tokens_per_row(text, make_lowercase)
-
-    if lemmatize:
-        tokens_by_message = _lemmatize(tokens_by_message)
-
-    if remove_stop_words:
-        tokens_by_message = _remove_stop_words(tokens_by_message)
+    stop_words = set(nltk.corpus.stopwords.words('english'))
+    tokens = [i for  i in tokens if i not in stop_words]
         
-    if remove_non_words:
-        tokens_by_message = _remove_non_words(tokens_by_message)
+    tokens = [i for i in tokens if i.isalpha]
 
-    # now combine back to strings (one per row) so we can pass it back to TfidfTransformer
-    processed_messages = [' '.join(tokens) for tokens in tokens_by_message]
-
-    return processed_messages
+    return tokens
 
 
-def build_model(
-        use_model=RandomForestClassifier(random_state=42, n_jobs=-1), 
-        grid_search_params={}, 
-        ):
+def build_model(use_model=RandomForestClassifier(random_state=42, n_jobs=-1), grid_search_params={}):
     """ Build a classification model using a Scitkit-Learn pipline to procss text and 
     generate a TF-IDF matrix. Optionally apply a paramter grid search.
-
-    Thank you: https://stackoverflow.com/questions/67768470/valueerror-found-input-variables-with-inconsistent-numbers-of-samples-6-80
 
     Args:
         use_model (object, optional): Classifier model to utilize. Defaults to RandomForestClassifier(random_state=42, n_jobs=-1).
@@ -149,18 +97,13 @@ def build_model(
         object: GridSearchCV object containing the classification model.
     """
 
-    transformer = ColumnTransformer([
-        ('vect', TfidfVectorizer(tokenizer=tokenize, token_pattern=None), 'message'),
-        ('genre_onehot', OneHotEncoder(dtype='int'), ['genre']),
-    ], remainder='drop')
-
     pipeline = Pipeline([
-        ('vect', transformer),    
+        ('vect', CountVectorizer(tokenizer=tokenize, token_pattern=None)),
+        ('tfidf', TfidfTransformer()),
         ('model', use_model),
     ])
-        
-    return GridSearchCV(pipeline, grid_search_params, n_jobs=-1)
 
+    return GridSearchCV(pipeline, grid_search_params, n_jobs=-1)
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
