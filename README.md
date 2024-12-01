@@ -13,6 +13,8 @@
 
 3. Go to http://0.0.0.0:3001/
 
+# Requirements
+- A requirements.txt file is included in the repo to allow pip installation of the required libaries. Please open that file to see the specific requirements and additional information.
 
 # Project Overview / CRISP-DM Flow
 

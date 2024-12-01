@@ -1,3 +1,6 @@
+# from the venv you'd like to run the following command to ensure the notebook can run:
+# pip install -r requirements.txt
+
 anyio==4.6.2.post1
 appnope==0.1.4
 asttokens==3.0.0
