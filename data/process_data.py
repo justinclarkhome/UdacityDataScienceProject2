@@ -110,8 +110,7 @@ def check_for_columns_with_constant_value(df, drop=False):
         constant_cols = list(df_int.loc[:, df_int.apply(
             lambda x: x==unique_int_value).all()].columns)
         if constant_cols:
-            print(f"Detected int columns that are all {
-                unique_int_value}: {', '.join(constant_cols)}")
+            print(f"Detected int columns that are all {unique_int_value}: {', '.join(constant_cols)}")
             if drop:
                 print('... dropping from dataset.')
                 df = df.drop(constant_cols, axis=1)
