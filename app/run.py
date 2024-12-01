@@ -61,8 +61,8 @@ def index():
             ],
             'layout': {
                 'title': 'Why does it say paper jam!',
-                'height': 50,
-                'width': 28,
+                'height': 500,
+                'width': 280,
             }
         }
     ]

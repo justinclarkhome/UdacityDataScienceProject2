@@ -39,13 +39,13 @@ def display_results(Y_test, Y_pred, average='micro'):
     print(f"Precision: {precision:.2f}")
 
 
-def load_data(database_filepath, db_table_name='project2'):
+def load_data(database_filepath, db_table_name='project2', drop_all_zero_observations=True):
     """ Load source data from SQLite3 database, and separate into X and Y data for use in classification model.
 
     Args:
         database_filepath (str): Filepath to SQLite3 database file.
         db_table_name (str, optional): Table to query in the database. Defaults to 'project2'.
-
+        drop_all_zero_observations(bool, optiona): Drop rows where all categoricals are 0. Defaults to True.
     Returns:
         tuple: Three-tuple of X data (DataFrame), Y data (DataFrame), and category names (list of str).
     """
@@ -57,6 +57,10 @@ def load_data(database_filepath, db_table_name='project2'):
 
     category_names = [k for k,v in df.dtypes.items() if v in [int, np.int64]]
     assert len(category_names) == 36, f'There should be 36 categories (got {len(category_names)})'
+
+    if drop_all_zero_observations:
+        print('... dropping observations with zero values across all categories.')
+        df = df[df[category_names].sum(axis=1).gt(0).values]
 
     Y = df[category_names]
     X = df.drop(category_names, axis=1)
