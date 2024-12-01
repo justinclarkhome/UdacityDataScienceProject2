@@ -140,7 +140,6 @@ def clean_data(df, trim_related=True):
         
 
     # If we're going to use a random-forest style classifier, we don't need dummies.
-    # df = pd.get_dummies(data=df, columns=categrorial_columns, drop_first=True)
     df = check_and_drop_duplicates(df=df)
 
     # Check if any categorical/boolean column is all a single value, and optionally drop.
@@ -234,8 +233,6 @@ def save_data(df, database_filepath, table_name='project2'):
 
 
 def main():
-    """_summary_
-    """
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]

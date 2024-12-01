@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 import nltk
-from nltk.corpus import stopwords
 from sklearn.metrics import accuracy_score, f1_score, precision_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report

@@ -1,14 +1,16 @@
 import json
 import plotly
+import plotly.express as px
 import pandas as pd
 import numpy as np
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from flask import Flask
 from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
+from plotly.graph_objs import Bar, Histogram
 import joblib
 from sqlalchemy import create_engine
+import plotly.graph_objs as go
 
 
 app = Flask(__name__)
@@ -41,7 +43,12 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
-    
+
+    # count of True values across categories for each message
+    categories = [k for k, v in df.dtypes.items() if v in [int, np.int64]]
+    cat_counts = df[categories].sum(axis=1).reset_index(drop=True)
+    cat_labels = list(cat_counts.index)
+
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
@@ -49,18 +56,13 @@ def index():
             'data': [
                 Bar(
                     x=genre_names,
-                    y=genre_counts
+                    y=genre_counts,
                 )
             ],
-
             'layout': {
-                'title': 'Distribution of Message Genres',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': "Genre"
-                }
+                'title': 'Why does it say paper jam!',
+                'height': 50,
+                'width': 28,
             }
         }
     ]
@@ -68,7 +70,7 @@ def index():
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
-    
+
     # render web page with plotly graphs
     return render_template('master.html', ids=ids, graphJSON=graphJSON)
 
