@@ -33,17 +33,15 @@
 - **load_data.py** loads the raw message and category information, first splits out the 'id' and the 'categories' key/value pairs, then splits the key/value pairs into columns of data with integer data, and joins each dataset (on 'id') and passes that joined dataframe along for cleaning in the next phase.
 
 ## Data Preparation
-- **clean_data.py** attempts to separate the Enlish and non-English components of the raw nessage, and stores the processed English-only message as a new field in the data, allowing it to be more easily processed in the machine learning pipeline.
-- It also converts the 'genre' field into a set of dummies with boolean values (n-1 categories).
-
-## Data Modeling
-- The clean_data() function in process_data.py applies some cleaning to the data.
+- The **clean_data()** function in process_data.py applies some cleaning to the data.
     - By default, it will make the **related** field binary (by replacing the 2s with 1).
     - It will check for duplicate rows, and drop any that are found.
     - It will check for columns with constant values, and by default print a warning to the console about them (they can also be dropped, optionally).
         - The **child_alone** category is a constant: the rubric states to fit the model on all 36 categories, so this is being left in place. But as a constant, it adds no information to the model.
-- The cleaned data is then passed to a Random Forest classifier.
-    - A Scitkit-Learn pipelie is defined for modeling:
+
+## Data Modeling
+- The cleaned data is then passed to a Scitkit-Learn [Random Forest classifier](https://scikit-learn.org/1.5/modules/generated/sklearn.ensemble.RandomForestClassifier.html).
+    - A Scikit-Learn [pipeline](https://scikit-learn.org/1.5/modules/generated/sklearn.pipeline.Pipeline.html) is defined for modeling:
         - First, the **message** strings are split into lemmatized tokens, all lower case. Stop words and non-English words are removed.
         - The tokens are converted into a TF-IDF matrix.
         - The TF-IDF matrix is then used as the X variables to train the classifer on the Y data (the boolean values in the 36 categories).
@@ -65,3 +63,6 @@
 
 # Acknowledgments
 - MANY thanks to [Rajat](https://knowledge.udacity.com/questions/510253) on the Udacity forums - his go.html/master.html files solved my issue of Plotly graphs not displaying in my web app.
+- Also thank you to the developers and contributors at [Scikit-Learn](https://scikit-learn.org/1.5/index.html). Their tools and documentation were crucial!
+- Also thank you to the folks at [Udacity](https://www.udacity.com) - especially the instructors in the Advanced Data Science Nanodegree program. The web app content here is new territory for me and the lessons were very helpful.
+- Relatedly, thank you to [Bootstrap](https://getbootstrap.com), [Flask](https://flask.palletsprojects.com/en/stable/) and [Ploty](https://plotly.com) - and of course, [Python](https://www.python.org) - for making this all a little bit easier!
