@@ -14,11 +14,7 @@
 3. Go to http://0.0.0.0:3001/
 
 
-# Project Overview
-
-# CRISP-DM Flow
-- ALL of this should go in the README.md file at the end of the project.
-- The rubric states the README should contain a lot of info.
+# Project Overview / CRISP-DM Flow
 
 ## Business Understanding
 - The purpose of this project is to identify an efficient way to model emergency messages to determine which are most informative for making a quick disaster response decision. This is important as resources for disaster response are limited and false positives can prevent those resources from being deployed where they are needed most.
@@ -53,9 +49,10 @@
         - As mentioned previously, **child_alone** has no observations.
         - The fields **offer/shops/tools/fire/hospitals/missing_people/aid_centers/clothing/security** all have less than 500 observations.
             - But the smallest - **offer** - still has 118 observations, which is not negligible.
-        - However, there are observations that have a zero value across **all** categories.
-            - These are dropped, by default, so that their presence doesn't diminish the ability of the model to identify categories that are true.
-            - In other words, message content in those observations will pull ALL categories towards zero.
+        - However, there are 6119 observations that have a 0/False value across **all** categories.
+            - While these are a substantial portion of all samples, these are dropped by default so that their presence doesn't diminish the ability of the model to identify categories that are true.
+            - In other words, message content in those observations can pull ALL categories towards zero.
+        - There are no observations that have a 1/True value for all observations.
 
 ## Result Evaluation
 - From command line, you can inspect various statistical metrics for the model running on test data, per category and overall.
