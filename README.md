@@ -64,4 +64,4 @@
 - Run the web app.
 
 # Acknowledgments
-- MANY thank you's to [Rajat](https://knowledge.udacity.com/questions/510253) on the Udacity forums - his go.html/master/html files solved my issue of Plotly graphs not displaying in my web app.
+- MANY thanks to [Rajat](https://knowledge.udacity.com/questions/510253) on the Udacity forums - his go.html/master.html files solved my issue of Plotly graphs not displaying in my web app.

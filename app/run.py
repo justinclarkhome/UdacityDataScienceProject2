@@ -28,7 +28,7 @@ def tokenize(text):
 
 # load data
 engine = create_engine('sqlite:///./data/DisasterResponse.db')
-df = pd.read_sql_table('project2', engine)
+df = pd.read_sql_table('project2', engine).set_index('id')
 
 # load model
 model = joblib.load("./models/classifier.pkl")
@@ -46,12 +46,44 @@ def index():
 
     # count of True values across categories for each message
     categories = [k for k, v in df.dtypes.items() if v in [int, np.int64]]
-    cat_counts = df[categories].sum(axis=1).reset_index(drop=True)
-    cat_labels = list(cat_counts.index)
+    cat_counts_per_message = df[categories].sum(axis=1).reset_index(drop=True)
+    histogram_data, histogram_labels = np.histogram(cat_counts_per_message)
+    hist_plot_data = pd.concat({
+        'labels': pd.Series(histogram_labels).apply(lambda x: f'{x:.0f}'),
+        'hist': pd.Series(histogram_data),
+    }, axis=1).dropna().set_index('labels')
+
+    counts_per_category = df[categories].sum().sort_values(ascending=False)
 
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
+        {
+            'data': [
+                Bar(
+                    x=list(counts_per_category.index),
+                    y=counts_per_category,
+                )
+            ],
+            'layout': {
+                'title': 'Histogram True Values per Category',
+                'xaxis': {'title': 'Number of True Values in Category'},
+                'yaxis': {'title': 'Frequency'},
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=list(hist_plot_data.index),
+                    y=hist_plot_data.squeeze(),
+                )
+            ],
+            'layout': {
+                'title': 'Histogram of True Category Values per Message',
+                'xaxis': {'title': 'Number of True Categories per Message'},
+                'yaxis': {'title': 'Frequency'},
+            }
+        },
         {
             'data': [
                 Bar(
@@ -60,11 +92,9 @@ def index():
                 )
             ],
             'layout': {
-                'title': 'Why does it say paper jam!',
-                'height': 500,
-                'width': 280,
+                'title': 'Example',
             }
-        }
+        },
     ]
     
     # encode plotly graphs in JSON
