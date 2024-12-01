@@ -1,4 +1,5 @@
 # Disaster Response Pipeline Project
+The code for this project is hosted on [GitHub](https://github.com/justinclarkhome/UdacityDataScienceProject2).
 
 ### Instructions:
 1. Run the following commands in the project's root directory to set up your database and model.
