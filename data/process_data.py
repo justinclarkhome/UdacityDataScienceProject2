@@ -127,7 +127,7 @@ def clean_data(df, trim_related=True):
         df (DataFrame): DataFrame to clean.
         categorial_columns (list of str): Columns to create dummy variables from (categorical variables with more than 2 levels).
     Returns:
-        DataFrame: Cleaned DataFrame.
+        trim_related (bool, optional): Ensure the 'related' field is binary by replace 2s with 1. Defaults to True.
     """
     # The 'related' category has values of 0/1/2, but all the other categories are binary.
     # Not clear if this is a data issue or not, so here we can trim it to 0/1, if desired.
