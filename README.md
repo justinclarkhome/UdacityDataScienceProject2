@@ -63,6 +63,6 @@
 
 # Acknowledgments
 - MANY thanks to [Rajat](https://knowledge.udacity.com/questions/510253) on the Udacity forums - his go.html/master.html files solved my issue of Plotly graphs not displaying in my web app.
-- Also thank you to the developers and contributors at [Scikit-Learn](https://scikit-learn.org/1.5/index.html). Their tools and documentation were crucial!
-- Also thank you to the folks at [Udacity](https://www.udacity.com) - especially the instructors in the Advanced Data Science Nanodegree program. The web app content here is new territory for me and the lessons were very helpful.
+- Thank you to the developers and contributors at [Scikit-Learn](https://scikit-learn.org/1.5/index.html). Their tools and documentation were crucial!
+- Also thank you to the folks at [Udacity](https://www.udacity.com) - especially the instructors in the [Data Scientist Nanodegree](https://www.udacity.com/enrollment/nd025) program. The web app content here is new territory for me and the lessons were very helpful.
 - Relatedly, thank you to [Bootstrap](https://getbootstrap.com), [Flask](https://flask.palletsprojects.com/en/stable/) and [Ploty](https://plotly.com) - and of course, [Python](https://www.python.org) - for making this all a little bit easier!
