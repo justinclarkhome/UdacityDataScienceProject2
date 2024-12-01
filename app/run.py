@@ -66,9 +66,9 @@ def index():
                 )
             ],
             'layout': {
-                'title': 'Histogram True Values per Category',
-                'xaxis': {'title': 'Number of True Values in Category'},
-                'yaxis': {'title': 'Frequency'},
+                'title': 'Histogram of True Values per Category',
+                'xaxis': {'tickangle': 45},
+                'yaxis': {'title': 'Frequency of True Values in Category'},
             }
         },
         {
@@ -92,7 +92,9 @@ def index():
                 )
             ],
             'layout': {
-                'title': 'Example',
+                'title': 'Number of Messages by Genre',
+                'xaxis': {'title': 'Genre'},
+                'yaxis': {'title': 'Frequency'},
             }
         },
     ]
