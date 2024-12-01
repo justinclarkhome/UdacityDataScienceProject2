@@ -99,6 +99,7 @@ def check_for_columns_with_constant_value(df, drop=False):
     
     Args:
         df (DataFrame): DataFrame to evaluate.
+        drop (bool, optional): If constant-value columns are found, drop them. Defaults to False.
 
     Returns:
         DataFrame: DataFrame with constant-value int columns removed.
