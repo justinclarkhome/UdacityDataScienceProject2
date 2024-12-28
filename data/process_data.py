@@ -213,12 +213,12 @@ def save_data(df, database_filepath, table_name='project2'):
         'genre': f'VARCHAR({get_max_string_length_in_column(df.genre)})',
     }
     # String to use when creating the table. It looops over the dict's k/v pairs and join each field name and type together.
-    create_table_str = "CREATE TABLE data (" + ", ". join([f'{k} {v}' for k, v in db_types.items()]) + " );"
+    create_table_str = f"CREATE TABLE {table_name} (" + ", ". join([f'{k} {v}' for k, v in db_types.items()]) + " );"
 
     conn = sqlite3.connect(database_filepath) # Connect to db.
     cur = conn.cursor() # Get a cursor.
 
-    cur.execute("DROP TABLE IF EXISTS data") # Drop the 'data' table (in case we're re-writing it).
+    cur.execute(f"DROP TABLE IF EXISTS {table_name}") # Drop the 'data' table (in case we're re-writing it).
     conn.commit()
 
     print(f'... creating table "{table_name}"')
